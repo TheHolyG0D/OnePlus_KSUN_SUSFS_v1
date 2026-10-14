@@ -392,15 +392,18 @@ runs:
         AFDO_PATH_2="$COMMON_KERNEL_DIR/gki/aarch64/afdo/kernel.afdo"
         
         # Check which one exists
+        AFDO_PROFILE=""
         if [ -f "$AFDO_PATH_1" ]; then
             AFDO_PROFILE="$AFDO_PATH_1"
         elif [ -f "$AFDO_PATH_2" ]; then
             AFDO_PROFILE="$AFDO_PATH_2"
+        fi
+        
+        if [ -n "$AFDO_PROFILE" ]; then
+            echo "AFDO_PROFILE_PATH=$AFDO_PROFILE" >> "$GITHUB_ENV"
+            echo "AFDO profile found: $AFDO_PROFILE"
         else
-            echo "ERROR: AFDO profile not found!"
-            echo "  Tried: $AFDO_PATH_1"
-            echo "  Tried: $AFDO_PATH_2"
-            exit 1
+            echo "AFDO profile not found; continuing without AFDO."
         fi
         
         # Save to environment for later steps
@@ -1996,11 +1999,15 @@ runs:
         export KCFLAGS="${KCFLAGS:-} $MAP $MPMAP $FPMAP -no-canonical-prefixes -fdiagnostics-color=never -Qunused-arguments -Wno-unused-command-line-argument -D__ANDROID_COMMON_KERNEL__"
         export KCPPFLAGS="${KCPPFLAGS:-} $MAP $MPMAP $FPMAP"
 
-        cat >> "$COMMON_KERNEL_FOLDER/arch/arm64/configs/gki_defconfig" <<EOF
-        CONFIG_AUTOFDO_CLANG=y
-        EOF
-        
-        export CLANG_AUTOFDO_PROFILE="$AFDO_PROFILE_PATH"
+        if [ -n "${AFDO_PROFILE_PATH:-}" ] && [ -f "$AFDO_PROFILE_PATH" ]; then
+            echo "CONFIG_AUTOFDO_CLANG=y" >> "$COMMON_KERNEL_FOLDER/arch/arm64/configs/gki_defconfig"
+            export CLANG_AUTOFDO_PROFILE="$AFDO_PROFILE_PATH"
+            echo "AFDO enabled: $AFDO_PROFILE_PATH"
+        else
+            echo "AFDO unavailable; building without AFDO."
+            sed -i '/^CONFIG_AUTOFDO_CLANG=y$/d' "$COMMON_KERNEL_FOLDER/arch/arm64/configs/gki_defconfig"
+            unset CLANG_AUTOFDO_PROFILE
+        fi
         
         export LLVM=1 LLVM_IAS=1
         export ARCH=arm64 SUBARCH=arm64
