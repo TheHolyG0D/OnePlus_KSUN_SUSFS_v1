@@ -94,7 +94,7 @@ runs:
         os_version="$OP_OS_VERSION"
         hmbird="$OP_HMBIRD"
         susfs="$OP_SUSFS"
-        opt="$OP_OPT"
+        opt="${OP_OPT:-false}"
         bbg="$OP_BBG"
         bbr="$OP_BBR"
         bbr3="$OP_BBR3"
